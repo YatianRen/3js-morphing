@@ -3,6 +3,7 @@ uniform float uSize;
 uniform float uProgress;
 uniform vec3 uColorA;
 uniform vec3 uColorB;
+uniform float uTime; // Add time uniform for animation
 
 attribute vec3 aPositionTarget;
 attribute float aSize;
@@ -24,6 +25,27 @@ void main()
     float end = delay + duration;
     float progress = smoothstep(delay, end, uProgress);
     vec3 mixedPosition = mix(position, aPositionTarget, progress);
+
+    // Add wave-like noise animation with smooth transition
+    float waveNoise = 0.0;
+    vec3 waveInput = position + uTime * 0.30; // Slower wave movement
+    waveNoise = simplexNoise3d(waveInput * 0.2) * 0.20; // Reduced amplitude
+    waveNoise += simplexNoise3d(waveInput * 0.05) * 0.10; // Reduced larger wave
+    
+    // Smooth transition between waving and morphing
+    // Create a smooth falloff based on transition progress
+    float waveStrength = 1.0 - smoothstep(0.0, 0.3, uProgress) * smoothstep(1.0, 0.7, uProgress);
+    waveNoise *= waveStrength;
+    
+    // Calculate normal direction for wave movement
+    vec3 normal = normalize(position - aPositionTarget);
+    // If positions are too similar, use a default up direction
+    if (length(normal) < 0.001) {
+        normal = vec3(0.0, 1.0, 0.0);
+    }
+    
+    // Apply wave along the normal direction
+    mixedPosition += normal * waveNoise;
 
     // Final position
     vec4 modelPosition = modelMatrix * vec4(mixedPosition, 1.0);
